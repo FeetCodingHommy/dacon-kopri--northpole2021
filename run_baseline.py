@@ -8,7 +8,7 @@ import tensorflow as tf
 # import gc
 
 from dacon_baseline.dacon_functions import train_map_func
-from custom_model.baseline_convlstm_seq2seq import Encoder, Decoder, Seq2Seq
+from custom_model.s2s_lstm2lstm import Encoder, Decoder, Seq2Seq
 from dacon_baseline.dacon_functions import loss_function
 from dacon_baseline.metrics import mae_score, f1_score, mae_over_f1
 from dacon_baseline.dacon_functions import predict

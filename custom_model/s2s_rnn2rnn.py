@@ -1,62 +1,20 @@
 import tensorflow as tf
 
-
-class ConvGRUCell(tf.keras.Model):
-    def __init__(self, hidden_dim, kernel_size, bias):
-        super(ConvGRUCell, self).__init__()
-        self.hidden_dim = hidden_dim
-        
-        self.kernel_size = kernel_size
-        self.bias = bias
-        
-        self.conv_xh = tf.keras.layers.Conv2D(
-            filters = 2 * self.hidden_dim,
-            kernel_size = self.kernel_size,
-            padding = 'same',
-            use_bias = self.bias
-        )
-
-        self.conv_xr = tf.keras.layers.Conv2D(
-            filters = 1 * self.hidden_dim,
-            kernel_size = self.kernel_size,
-            padding = 'same',
-            use_bias = self.bias
-        )
-        
-    def call(self, input_tensor, cur_state):
-        h_cur = cur_state[0]
-        combined = tf.concat([input_tensor, h_cur], axis=3)
-        combined_conv_rz = self.conv_xh(combined)
-        cc_r, cc_z = tf.split(combined_conv_rz, num_or_size_splits=2, axis=-1)
-        
-        r = tf.keras.activations.sigmoid(cc_r)
-        z = tf.keras.activations.sigmoid(cc_z)
-        
-        combined2 = tf.concat([input_tensor, r*h_cur], axis=3)
-        x_reset = self.conv_xr(combined2)
-        h_tilde = tf.keras.activations.tanh(x_reset)
-        
-        h_next = (1-z)*h_cur + z*h_tilde
-        
-        return h_next
-        
-    def init_hidden(self, batch_size, image_size):
-        height, width = image_size
-        return tf.zeros([batch_size, height, width, self.hidden_dim])
+from custom_model.convcell import ConvRNNCell
 
 
 class Encoder(tf.keras.Model):
     def __init__(self, hidden, enc_num_layers=1):
         super(Encoder, self).__init__()
         self.enc_num_layers = enc_num_layers
-        self.encoder_input_convgru = ConvGRUCell(
+        self.encoder_input_convrnn = ConvRNNCell(
             hidden_dim=hidden,
             kernel_size=(3, 3),
             bias=True
         )
         if self.enc_num_layers is not None:
             self.hidden_encoder_layers = [
-                ConvGRUCell(
+                ConvRNNCell(
                     hidden_dim=hidden,
                     kernel_size=(3, 3),
                     bias=True
@@ -72,7 +30,7 @@ class Encoder(tf.keras.Model):
         
         seq_len = enc_input.shape[1]
         for t in range(seq_len):
-            h_t = self.encoder_input_convgru(
+            h_t = self.encoder_input_convrnn(
                 input_tensor=enc_input[:, t, :, :, :],
                 cur_state=[h_t]
             )
@@ -93,7 +51,7 @@ class Encoder(tf.keras.Model):
     def init_hidden(self, input_tensor, seq):
         if seq == 'seq':
             b, seq_len, h, w, _ = input_tensor.shape
-            h_t = self.encoder_input_convgru.init_hidden(
+            h_t = self.encoder_input_convrnn.init_hidden(
                 batch_size=b,
                 image_size=(h, w)
             )
@@ -111,14 +69,14 @@ class Decoder(tf.keras.Model):
         super(Decoder, self).__init__()
         self.dec_num_layers = dec_num_layers
         self.future_len = future_len
-        self.decoder_input_convgru = ConvGRUCell(
+        self.decoder_input_convrnn = ConvRNNCell(
             hidden_dim=hidden,
             kernel_size=(3, 3),
             bias=True
         )
         if self.dec_num_layers is not None:
             self.hidden_decoder_layers = [
-                ConvGRUCell(
+                ConvRNNCell(
                     hidden_dim=hidden,
                     kernel_size=(3, 3),
                     bias=True
@@ -142,7 +100,7 @@ class Decoder(tf.keras.Model):
         input_tensor = enc_output
         h_t = self.init_hidden(input_tensor, 'seq')
         for t in range(self.future_len):
-            h_t = self.decoder_input_convgru(
+            h_t = self.decoder_input_convrnn(
                 input_tensor=input_tensor,
                 cur_state=[h_t]
             )
@@ -165,7 +123,7 @@ class Decoder(tf.keras.Model):
     def init_hidden(self, input_tensor, seq):
         if seq == 'seq':
             b, h, w, _ = input_tensor.shape
-            h_t = self.decoder_input_convgru.init_hidden(
+            h_t = self.decoder_input_convrnn.init_hidden(
                 batch_size=b,
                 image_size=(h, w)
             )
