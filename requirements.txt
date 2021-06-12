@@ -1,0 +1,5 @@
+tensorflow==2.3
+numpy==1.19
+pandas
+matplotlib
+tqdm
