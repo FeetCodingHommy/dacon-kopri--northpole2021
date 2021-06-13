@@ -6,6 +6,7 @@ import tensorflow as tf
 # import gc
 
 from custom_model.s2s_lstm2lstm import Encoder, Decoder
+from custom_model.weighted_average import WeightMultiply
 from utils.dacon_functions import predict
 from utils.my_metrics import mae_score
 from utils.my_utils import DataGenerator
@@ -14,9 +15,9 @@ from utils.my_utils import DataGenerator
 # 학과 GPU
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
-    # Restrict TensorFlow to only use the second GPU
+    # Restrict TensorFlow to only use the last GPU
     try:
-        tf.config.experimental.set_visible_devices(gpus[1], 'GPU')
+        tf.config.experimental.set_visible_devices(gpus[3], 'GPU')
     except Exception as e:
         print(e)
         raise KeyboardInterrupt
@@ -64,19 +65,56 @@ hidden_dim = 16
 
 # Define an input sequence and process it.
 encoder_inputs = tf.keras.Input(shape=(input_window_size, image_height, image_width, image_channel), batch_size=BATCH_SIZE)
-encoder_inputs_reversed = tf.reverse(encoder_inputs, axis=[1], name="input_reverse")
 
-encoder = Encoder(hidden_dim, 1)
-enc_output = encoder(encoder_inputs)
+encoder1 = Encoder(hidden_dim, 1)
+enc_output1 = encoder1(encoder_inputs)
 # enc_output[0].shape, enc_output[1].shape
 
-decoder = Decoder(hidden_dim)
-dec_output = decoder(enc_output)
-decoder_inputs_reversed = tf.reverse(dec_output, axis=[1], name="output_reverse")
+decoder1 = Decoder(hidden_dim)
+dec_output1 = decoder1(enc_output1)
 # dec_output.shape
 
-# model = Seq2Seq(16, 1, 1)
-model = tf.keras.Model(encoder_inputs, dec_output)
+model1 = tf.keras.Model(encoder_inputs, dec_output1)
+model1.load_weights("./checkpoint_tanh_fw/")
+
+# Define an input sequence and process it.
+encoder_inputs_reversed = tf.reverse(encoder_inputs, axis=[1], name="input_reverse")
+
+encoder2 = Encoder(hidden_dim, 1)
+enc_output2 = encoder2(encoder_inputs_reversed)
+# enc_output[0].shape, enc_output[1].shape
+
+decoder2 = Decoder(hidden_dim)
+dec_output2 = decoder2(enc_output2)
+decoder_inputs_reversed = tf.reverse(dec_output2, axis=[1], name="output_reverse")
+# dec_output.shape
+
+model2 = tf.keras.Model(encoder_inputs, decoder_inputs_reversed)
+model2.load_weights("./checkpoint_tanh_bw/")
+
+for l in model1.layers:
+    l.trainable = False
+
+for l in model2.layers:
+    l.trainable = False
+
+model1_outputs = tf.split(model1.outputs, num_or_size_splits=12, axis=-4)
+model2_outputs = tf.split(model2.outputs, num_or_size_splits=12, axis=-4)
+
+outputs_combined = list()
+for i, (o1, o2) in enumerate(zip(model1_outputs, model2_outputs)):
+    weights = WeightMultiply(
+        weight_shape=(BATCH_SIZE, image_height, image_width, image_channel), 
+        trainable=True, 
+        name=f"weights_{i+1}"
+    )
+    w_o1, w_o2 = weights(tf.squeeze(o1, axis=0), tf.squeeze(o2, axis=0))
+    o_c = tf.keras.layers.Add()([w_o1, w_o2])
+    outputs_combined.append(o_c)
+
+outputs_tensor = tf.concat(outputs_combined, axis=-4)
+
+model = tf.keras.Model(model1.input, outputs_tensor)
 
 # 학습률 & 옵티마이저
 
@@ -91,7 +129,7 @@ model.compile(
 
 # 체크포인트
 
-checkpoint_path = './checkpoint_tanh_bw/'
+checkpoint_path = './checkpoint_tanh_precomputed/'
 os.makedirs(checkpoint_path, exist_ok=True)
 
 # https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/ModelCheckpoint
@@ -103,7 +141,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 
 # 학습
 
-EPOCHS = 200
+EPOCHS = 50
 
 history = model.fit(train_data_gen, validation_data=valid_data_gen,
                     epochs=EPOCHS, batch_size=BATCH_SIZE,
@@ -114,12 +152,12 @@ history = model.fit(train_data_gen, validation_data=valid_data_gen,
 
 plt.plot(history.history["loss"])
 plt.title('loss_plot')
-plt.savefig("./elmo_tanh_bw_loss_plot.png")
+plt.savefig("./elmo_tanh_loss_plot.png")
 plt.clf()
 
 plt.plot(history.history["val_loss"])
 plt.title('val_loss_plot')
-plt.savefig("./elmo_tanh_bw_val_loss_plot.png")
+plt.savefig("./elmo_tanh_val_loss_plot.png")
 plt.clf()
 
 # 모델복원
@@ -143,6 +181,6 @@ sub_2020 = pd.concat([sub_2020, (pd.DataFrame(pred.reshape([12,-1])))], axis=1)
 sub_2021.columns = sub_2020.columns
 submission = pd.concat([sub_2020, sub_2021])
 
-submission.to_csv('./elmo_backward_model.csv', index=False)
+submission.to_csv('./elmo_precomputed.csv', index=False)
 
 print("WOW!")
