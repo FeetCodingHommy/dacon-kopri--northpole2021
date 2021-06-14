@@ -68,3 +68,17 @@ class DataGenerator(tf.keras.utils.Sequence):
         X, y = self.__get_data(batch)
 
         return X, y
+
+
+def my_cycle(epoch):
+    eps = 0.01      # 바닥
+    ceil = 1 - eps  # 천장
+    if epoch < 40:
+        return (0.5 * np.cos((epoch/20) * 2*np.pi * epoch / 10) + 0.5) * ceil * (0.55 ** (epoch/10)) + eps
+    else:
+        return (0.5 * np.cos(8 * np.pi * epoch / 10) + 0.5) * ceil * (0.55 ** 4) + eps
+
+
+def my_cycle_scheduler(epoch, lr):
+    # 0~40: 1~0.01배 / 50~: 0.1~0.01배
+    return lr * my_cycle(epoch)

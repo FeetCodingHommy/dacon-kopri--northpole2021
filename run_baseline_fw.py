@@ -8,7 +8,7 @@ import tensorflow as tf
 from custom_model.s2s_lstm2lstm import Encoder, Decoder
 from utils.dacon_functions import predict
 from utils.my_metrics import mae_score
-from utils.my_utils import DataGenerator
+from utils.my_utils import DataGenerator, my_cycle_scheduler
 
 
 # 학과 GPU
@@ -78,8 +78,9 @@ model = tf.keras.Model(encoder_inputs, dec_output)
 
 # 학습률 & 옵티마이저
 
-learning_rate = 0.0005
-optimizer = tf.keras.optimizers.Adam(learning_rate)
+learning_rate = 0.0005      # 0.0005(baseline)~0.00005~0.000005
+# optimizer = tf.keras.optimizers.Adam(learning_rate)
+learning_rate_scheduler = tf.keras.callbacks.LearningRateScheduler(my_cycle_scheduler)
 
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate),
@@ -105,7 +106,7 @@ EPOCHS = 200
 
 history = model.fit(train_data_gen, validation_data=valid_data_gen,
                     epochs=EPOCHS, batch_size=BATCH_SIZE,
-                    callbacks=[model_checkpoint_callback],
+                    callbacks=[learning_rate_scheduler, model_checkpoint_callback],
                     verbose=True)
 
 # 학습 결과
