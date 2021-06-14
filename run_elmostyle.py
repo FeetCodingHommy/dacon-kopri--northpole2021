@@ -118,8 +118,16 @@ model = tf.keras.Model(model1.input, outputs_tensor)
 
 # 학습률 & 옵티마이저
 
-learning_rate = 0.0005
-optimizer = tf.keras.optimizers.Adam(learning_rate)
+max_learning_rate = 0.02
+learning_rate = 0.002
+
+def scheduler(epoch, lr):
+  if epoch < 30:
+    return (max_learning_rate - lr) * (31-epoch) / 30 + lr
+  else:
+    return lr
+
+learning_rate_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler)
 
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate),
@@ -145,7 +153,7 @@ EPOCHS = 50
 
 history = model.fit(train_data_gen, validation_data=valid_data_gen,
                     epochs=EPOCHS, batch_size=BATCH_SIZE,
-                    callbacks=[model_checkpoint_callback],
+                    callbacks=[learning_rate_scheduler, model_checkpoint_callback],
                     verbose=True)
 
 # 학습 결과
