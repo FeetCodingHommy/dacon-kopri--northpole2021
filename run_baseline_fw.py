@@ -111,7 +111,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 
 # 학습
 
-EPOCHS = 200
+EPOCHS = 500
 
 history = model.fit(train_data_gen, validation_data=valid_data_gen,
                     epochs=EPOCHS, batch_size=BATCH_SIZE,
