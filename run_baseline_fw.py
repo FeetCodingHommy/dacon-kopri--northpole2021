@@ -23,7 +23,7 @@ if gpus:
 
 # 데이터
 
-default_path = '/data/hommy/arctic_data/'
+default_path = '/data/hommy/arctic_data_v2/'
 
 train = pd.read_csv(os.path.join(default_path,'weekly_train.csv'))
 test = pd.read_csv(os.path.join(default_path,'public_weekly_test.csv'))
