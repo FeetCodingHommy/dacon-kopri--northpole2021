@@ -60,7 +60,7 @@ valid_data_gen = DataGenerator(input_data_list[-52:], target_data_list[-52:], ba
 image_height = 448
 image_width = 304
 image_channel = 1
-hidden_dim = 16
+hidden_dim = 24
 
 # Define an input sequence and process it.
 encoder_inputs = tf.keras.Input(shape=(input_window_size, image_height, image_width, image_channel), batch_size=BATCH_SIZE)
@@ -113,7 +113,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 
 # 학습
 
-EPOCHS = 500
+EPOCHS = 400
 
 history = model.fit(train_data_gen, validation_data=valid_data_gen,
                     epochs=EPOCHS, batch_size=BATCH_SIZE,

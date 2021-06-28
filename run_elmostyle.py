@@ -27,7 +27,8 @@ if gpus:
 default_path = '/data/hommy/arctic_data_v2/'
 
 train = pd.read_csv(os.path.join(default_path,'weekly_train.csv'))
-test = pd.read_csv(os.path.join(default_path,'public_weekly_test.csv'))
+test1 = pd.read_csv(os.path.join(default_path,'public_weekly_test.csv'))
+test2 = pd.read_csv(os.path.join(default_path,'private_weekly_test.csv'))
 
 # 데이터 전처리
 #     테스트 활용 가능 마지막 제공 데이터와 맞춰야하는 기간 사이에는 2주의 공백이 있습니다.
@@ -61,7 +62,7 @@ valid_data_gen = DataGenerator(input_data_list[-52:], target_data_list[-52:], ba
 image_height = 448
 image_width = 304
 image_channel = 1
-hidden_dim = 16
+hidden_dim = 24
 
 # Define an input sequence and process it.
 encoder_inputs = tf.keras.Input(shape=(input_window_size, image_height, image_width, image_channel), batch_size=BATCH_SIZE)
@@ -174,21 +175,25 @@ model.load_weights(checkpoint_path)
 
 # 추론
 
-test_path = default_path + 'weekly_train/' + test.tail(12)['week_file_nm']
+test_path1 = default_path + 'weekly_train/' + test1.tail(12)['week_file_nm']
+test_path2 = default_path + 'weekly_train/' + test2.tail(12)['week_file_nm']
 
-pred = predict(test_path)
+pred1 = predict(test_path1)
+pred2 = predict(test_path2)
 
 # 제출
 
-submission = pd.read_csv('./sample_submission.csv')
+submission = pd.read_csv(os.path.join(default_path,'sample_submission.csv'))
 
 sub_2020 = submission.loc[:11, ['week_start']].copy()
-sub_2021 = submission.loc[12:].copy()
+# sub_2021 = submission.loc[12:].copy()
+sub_2021 = submission.loc[12:, ['week_start']].copy()
 
-sub_2020 = pd.concat([sub_2020, (pd.DataFrame(pred.reshape([12,-1])))], axis=1)
+sub_2020 = pd.concat([sub_2020, (pd.DataFrame(pred1.reshape([12,-1])))], axis=1)
+sub_2021 = pd.concat([sub_2021, (pd.DataFrame(pred2.reshape([12,-1])))], axis=1)
 sub_2021.columns = sub_2020.columns
 submission = pd.concat([sub_2020, sub_2021])
 
-submission.to_csv('./elmo_precomputed.csv', index=False)
+submission.to_csv('./elmo_precomputed_24dim.csv', index=False)
 
 print("WOW!")
