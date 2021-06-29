@@ -1,6 +1,6 @@
 # \[데이콘\] 북극 해빙예측 AI 경진대회
 
-![HOME](https://user-images.githubusercontent.com/38153357/120453743-45672900-c3ce-11eb-8144-4039d89870c3.jpg)
+![HOME](https://user-images.githubusercontent.com/38153357/123811629-61f37400-d92e-11eb-880d-bc54c3ef1e7f.png)
 
 
 
@@ -13,7 +13,7 @@
 
 ### 기한
 
-- 
+- 2021.05.10 ~ 2021.06.30 17:59
 
 ### 베이스라인 및 [이전 연계 공모전](https://dacon.io/competitions/official/235706/overview/description) 우수작
 
@@ -34,3 +34,8 @@
 ### RNN 계열 모델들
 
 ### 시계열 데이터 분석에 Convolution 구조 사용
+
+
+
+## 내 모델
+
