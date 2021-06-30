@@ -185,14 +185,13 @@ pred2 = predict(test_path2)
 
 submission = pd.read_csv(os.path.join(default_path,'sample_submission.csv'))
 
-sub_2020 = submission.loc[:11, ['week_start']].copy()
-# sub_2021 = submission.loc[12:].copy()
-sub_2021 = submission.loc[12:, ['week_start']].copy()
+sub_2020 = submission.loc[:11, ['week_start']].copy().reset_index(drop=True)
+sub_2021 = submission.loc[12:, ['week_start']].copy().reset_index(drop=True)
 
 sub_2020 = pd.concat([sub_2020, (pd.DataFrame(pred1.reshape([12,-1])))], axis=1)
 sub_2021 = pd.concat([sub_2021, (pd.DataFrame(pred2.reshape([12,-1])))], axis=1)
 sub_2021.columns = sub_2020.columns
-submission = pd.concat([sub_2020, sub_2021])
+submission = pd.concat([sub_2020, sub_2021]).reset_index(drop=True)
 
 submission.to_csv('./elmo_precomputed_24dim.csv', index=False)
 
